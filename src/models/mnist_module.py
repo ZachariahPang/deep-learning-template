@@ -74,8 +74,12 @@ class MNISTLitModule(LightningModule):
         # update and log metrics
         self.train_loss(loss)
         self.train_acc(preds, targets)
-        self.log("train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "train/loss", self.train_loss, on_step=False, on_epoch=True, prog_bar=True
+        )
+        self.log(
+            "train/acc", self.train_acc, on_step=False, on_epoch=True, prog_bar=True
+        )
 
         # return loss or backpropagation will fail
         return loss
@@ -97,7 +101,9 @@ class MNISTLitModule(LightningModule):
         self.val_acc_best(acc)  # update best so far val acc
         # log `val_acc_best` as a value through `.compute()` method, instead of as a metric object
         # otherwise metric would be reset by lightning after each epoch
-        self.log("val/acc_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True)
+        self.log(
+            "val/acc_best", self.val_acc_best.compute(), sync_dist=True, prog_bar=True
+        )
 
     def test_step(self, batch: Any, batch_idx: int):
         loss, preds, targets = self.model_step(batch)
@@ -105,7 +111,9 @@ class MNISTLitModule(LightningModule):
         # update and log metrics
         self.test_loss(loss)
         self.test_acc(preds, targets)
-        self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True
+        )
         self.log("test/acc", self.test_acc, on_step=False, on_epoch=True, prog_bar=True)
 
     def on_test_epoch_end(self):
