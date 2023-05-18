@@ -9,23 +9,31 @@ defaults:
   - callbacks: default.yaml
   - logger: null # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
   - trainer: default.yaml
-  - paths: default.yaml
-  - extras: default.yaml
   - hydra: default.yaml
 
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule
   - experiment: null
 
-  # config for hyperparameter optimization
-  - hparams_search: null
-
-  # optional local config for machine/user specific settings
-  # it's optional since it doesn't need to exist and is excluded from version control
-  - optional local: default.yaml
-
   # debugging config (enable through command line, e.g. `python train.py debug=default)
   - debug: null
+
+
+root_dir: .
+
+# path to data directory
+data_dir: ${root_dir}/data/
+
+# path to logging directory
+log_dir: ${root_dir}/logs/
+
+# path to output directory, created dynamically by hydra
+# path generation pattern is specified in `configs/hydra/default.yaml`
+# use it to store all files generated during the run, like ckpts and metrics
+output_dir: ${hydra:runtime.output_dir}
+
+# path to working directory
+work_dir: ${hydra:runtime.cwd}
 
 # task name, determines output directory path
 task_name: "train"
@@ -41,9 +49,6 @@ train: True
 # evaluate on test set, using best model weights achieved during training
 # lightning chooses best weights based on the metric specified in checkpoint callback
 test: True
-
-# compile model for faster training with pytorch 2.0
-compile: False
 
 # simply provide checkpoint path to resume training
 ckpt_path: null

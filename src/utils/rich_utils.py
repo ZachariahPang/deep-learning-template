@@ -23,8 +23,6 @@ def print_config_tree(
         "callbacks",
         "logger",
         "trainer",
-        "paths",
-        "extras",
     ),
     resolve: bool = False,
     save_to_file: bool = False,
@@ -71,27 +69,5 @@ def print_config_tree(
 
     # save config tree to file
     if save_to_file:
-        with open(Path(cfg.paths.output_dir, "config_tree.log"), "w") as file:
+        with open(Path(cfg.output_dir, "config_tree.log"), "w") as file:
             rich.print(tree, file=file)
-
-
-@rank_zero_only
-def enforce_tags(cfg: DictConfig, save_to_file: bool = False) -> None:
-    """Prompts user to input tags from command line if no tags are provided in config."""
-
-    if not cfg.get("tags"):
-        if "id" in HydraConfig().cfg.hydra.job:
-            raise ValueError("Specify tags before launching a multirun!")
-
-        log.warning("No tags provided in config. Prompting user to input tags...")
-        tags = Prompt.ask("Enter a list of comma separated tags", default="dev")
-        tags = [t.strip() for t in tags.split(",") if t != ""]
-
-        with open_dict(cfg):
-            cfg.tags = tags
-
-        log.info(f"Tags: {cfg.tags}")
-
-    if save_to_file:
-        with open(Path(cfg.paths.output_dir, "tags.log"), "w") as file:
-            rich.print(cfg.tags, file=file)
