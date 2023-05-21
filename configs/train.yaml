@@ -6,18 +6,10 @@ defaults:
   - _self_
   - data: mnist.yaml
   - model: mnist.yaml
-  - callbacks: default.yaml
   - logger: null # set logger here or use command line (e.g. `python train.py logger=tensorboard`)
-  - trainer: default.yaml
-  - hydra: default.yaml
-
   # experiment configs allow for version control of specific hyperparameters
   # e.g. best hyperparameters for given model and datamodule
   - experiment: null
-
-  # debugging config (enable through command line, e.g. `python train.py debug=default)
-  - debug: null
-
 
 root_dir: .
 
@@ -55,3 +47,61 @@ ckpt_path: null
 
 # seed for random number generators in pytorch, numpy and python.random
 seed: null
+
+trainer:
+  # trainer
+  _target_: lightning.pytorch.trainer.Trainer
+
+  default_root_dir: ${output_dir}
+
+  min_epochs: 1 # prevents early stopping
+  max_epochs: 10
+
+  accelerator: cpu
+  devices: 1
+
+  # perform a validation loop every N training epochs
+  check_val_every_n_epoch: 1
+
+  # set True to to ensure deterministic results
+  # makes training slower but gives more reproducibility than just setting seeds
+  deterministic: False
+
+
+# callbacks
+model_checkpoint:
+  _target_: lightning.pytorch.callbacks.ModelCheckpoint
+  dirpath: ${output_dir}/checkpoints
+  filename: "epoch_{epoch:03d}"
+  monitor: "val/acc"
+  mode: "max"
+  save_last: True
+  auto_insert_metric_name: False
+
+early_stopping:
+  _target_: lightning.pytorch.callbacks.EarlyStopping
+  monitor: "val/acc"
+  patience: 100
+  mode: "max"
+
+model_summary:
+  _target_: lightning.pytorch.callbacks.RichModelSummary
+  max_depth: -1
+
+rich_progress_bar:
+  _target_: lightning.pytorch.callbacks.RichProgressBar
+
+
+# hydra
+hydra:
+# enable color logging
+  defaults:
+    - override hydra_logging: colorlog
+    - override job_logging: colorlog
+
+  # output directory, generated dynamically on each run
+  run:
+    dir: ${log_dir}/${task_name}/runs/${now:%Y-%m-%d}_${now:%H-%M-%S}
+  sweep:
+    dir: ${log_dir}/${task_name}/multiruns/${now:%Y-%m-%d}_${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
