@@ -2,6 +2,7 @@ from typing import List, Optional, Tuple
 
 import hydra
 import lightning as L
+import lightning.pytorch as pl
 import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
@@ -10,6 +11,39 @@ from omegaconf import DictConfig
 from src import utils
 
 log = utils.get_pylogger(__name__)
+
+
+def get_callbacks(cfg: DictConfig) -> List[Callback]:
+    monitor = "val/acc"
+    mode = "max"
+    log.info(f"Instantiating callbacks <ModelCheckpoint>, <EarlyStopping>")
+    callbacks: List[Callback] = [
+        pl.callbacks.ModelCheckpoint(
+            dirpath=f"{cfg.output_dir}/checkpoints",
+            filename="epoch_{epoch:03d}",
+            monitor=monitor,
+            mode=mode,
+            save_last=True,
+            auto_insert_metric_name=False,
+        ),
+        pl.callbacks.EarlyStopping(monitor=monitor, patience=100, mode=mode),
+        pl.callbacks.RichModelSummary(max_depth=-1),
+        pl.callbacks.RichProgressBar(),
+    ]
+    return callbacks
+
+
+def get_loggers(cfg: DictConfig) -> List[Logger]:
+    log.info(f"Instantiating loggers <TensorBoardLogger>")
+    loggers: List[Logger] = [
+        pl.loggers.TensorBoardLogger(
+            save_dir=f"{cfg.output_dir}/tensorboard",
+            name="",
+            default_hp_metric=True,
+        ),
+        pl.loggers.CSVLogger(save_dir=f"{cfg.output_dir}/csv"),
+    ]
+    return loggers
 
 
 @utils.task_wrapper
@@ -37,15 +71,16 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     log.info(f"Instantiating model <{cfg.model._target_}>")
     model: LightningModule = hydra.utils.instantiate(cfg.model)
 
-    log.info("Instantiating callbacks...")
-    callbacks: List[Callback] = utils.instantiate_callbacks(cfg.get("callbacks"))
+    callbacks: List[Callback] = get_callbacks(cfg)
 
-    log.info("Instantiating loggers...")
-    logger: List[Logger] = utils.instantiate_loggers(cfg.get("logger"))
+    logger: List[Logger] = get_loggers(cfg)
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(
-        cfg.trainer, callbacks=callbacks, logger=logger
+        cfg.trainer,
+        callbacks=callbacks,
+        logger=logger,
+        enable_model_summary=False,
     )
 
     object_dict = {
@@ -60,10 +95,6 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     if logger:
         log.info("Logging hyperparameters!")
         utils.log_hyperparameters(object_dict)
-
-    if cfg.get("compile"):
-        log.info("Compiling model!")
-        model = torch.compile(model)
 
     if cfg.get("train"):
         log.info("Starting training!")
