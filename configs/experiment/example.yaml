@@ -6,17 +6,20 @@
 defaults:
   - override /data: mnist.yaml
   - override /model: mnist.yaml
-  - override /callbacks: default.yaml
-  - override /trainer: default.yaml
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
 
-tags: ["mnist", "simple_dense_net"]
-
 seed: 12345
 
 trainer:
+  # trainer
+  _target_: lightning.pytorch.trainer.Trainer
+  default_root_dir: ${output_dir}
+  accelerator: cpu
+  devices: 1
+
+  check_val_every_n_epoch: 1
   min_epochs: 10
   max_epochs: 10
   gradient_clip_val: 0.5
@@ -31,10 +34,3 @@ model:
 
 data:
   batch_size: 64
-
-logger:
-  wandb:
-    tags: ${tags}
-    group: "mnist"
-  aim:
-    experiment: "mnist"

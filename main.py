@@ -3,7 +3,6 @@ from typing import List, Optional, Tuple
 import hydra
 import lightning as L
 import lightning.pytorch as pl
-import torch
 from lightning import Callback, LightningDataModule, LightningModule, Trainer
 from lightning.pytorch.loggers import Logger
 from omegaconf import DictConfig
@@ -102,7 +101,11 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
 
     if cfg.get("test"):
         log.info("Starting testing!")
-        ckpt_path = trainer.checkpoint_callback.best_model_path
+        if cfg.get("train"):
+            ckpt_path = trainer.checkpoint_callback.best_model_path
+        else:
+            ckpt_path = cfg.get("ckpt_path")
+
         if ckpt_path == "":
             log.warning("Best ckpt not found! Using current weights for testing...")
             ckpt_path = None
@@ -110,9 +113,9 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
         log.info(f"Best ckpt path: {ckpt_path}")
 
 
-@hydra.main(version_base="1.3", config_path="configs", config_name="train.yaml")
+@hydra.main(version_base="1.3", config_path="configs", config_name="default.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
-    utils.rich_utils.print_config_tree(cfg, resolve=True, save_to_file=True)
+    utils.print_config_tree(cfg, resolve=True, save_to_file=True)
 
     # train the model
     train(cfg)
